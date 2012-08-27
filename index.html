@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Optimize Your Javascript</title>
+
+<!-- Your Slides -->
+<!-- One section is one slide -->
+
+<section>
+    <!-- This is the first slide -->
+    <h1>Optimize Your Javascript</h1>
+    <footer>Nicolas B. Pierron</footer>
+</section>
+
+<section>
+  <h3>about:thatguy</h3>
+  <pre><code class="javascript">
+var name = "Nicolas B. Pierron";
+var ircName = "nbp";
+var work = "IonMonkey Hacker";
+var workplace = " \
+  JS Pit (aka. Monkey Island)";
+
+var outsideMozillaActivites = " \
+  runs his own Linux distribution and \
+  tries to make funny presentation … \
+  … without success.";
+
+var faq = "Why B ?";
+  </code></pre>
+  <!--
+  <ul>
+    <li>Name = "Nicolas B. Pierron"
+    <li>IRC = nbp
+    <li>IonMonkey Hacker.
+    <li>Work in the JS pit (aka. Monkey Island).
+    <li>…
+    <li>Run his own distribution — don't ask.
+    <li>Tries to make funny presentation … without success
+  </ul>
+  -->
+</section>
+
+<section>
+  <h3>about:presentation</h3>
+  <ul>
+    <li>Overview of performance issues.
+    <li>Explanation of some optimizations.
+    <li>Nice examples.
+    <li>Work best (only) in Firefox.
+    <li>Not only composed of bullet points.
+  </ul>
+  <p>Feel free to ask questions at any time.</p>
+</section>
+
+<!-- Part 1: Main cause of slowdown not related with Jitted code. -->
+<section>
+  <h2>Javascript is Fast</h2>
+    <div style="text-align:center; margin:auto; display:block" active="">
+      <img src="img/jsv8-chartshape.png"/>
+      <p><a href="http://shootout.alioth.debian.org/u32/code-used-time-used-shapes.php#shapes">Computer Language Benchmarks Game</a></p>
+    </div>
+  <div class="incremental">
+    <div style="display:block; margin:auto; text-align:center"><img src="img/dmandelin-tweet.jpg"/></div>
+  </div>
+</section>
+
+<section>
+  <h3>Disclaimer</h3>
+  <p style="text-align:justify;">The next slides do not contain any apocalyptic prediction concerning the
+  world.  At worst, they only contain bad performance prediction concerning your
+  code.</p>
+  <p style="text-align:justify;">Please, be careful while using such pieces of code in production, it
+  might be dangerous for your users.</p>
+</section>
+
+<section>
+    <h2>Javascript is Fast</h2>
+    <!-- TODO: Add disclaimer to avoid scaring people too much. -->
+    <p>Except with</p>
+    <ul>
+        <li>Reflows
+        <li>Repaints
+        <li>Bad algorithms
+        <li>Dynamic features
+        <li>GCs
+    </ul>
+    <span class="incremental alternate">
+        <pre><code class="javascript">
+// Reflow
+document.getElementById("foo")
+  .style.width = '666px';
+        </code></pre>
+        <pre><code class="javascript">
+// Repaint
+document.getElementById("bar")
+  .style.color = "#666";
+        </code></pre>
+        <pre><code class="javascript">
+var a = 18, b = 37, mul = 0;
+for (var i = 0; i != b; i++)
+  mul += a;
+        </code></pre>
+        <pre><code class="javascript">
+var obj = { baz : 0x29a; };
+var property = "baz";
+with (obj) { eval(property); };
+        </code></pre>
+        <pre><code class="javascript">
+setInterval(function () {
+  var arr = new Array(1000000);
+  arr[0] = (0xdead - 0xbeef) / 12.2012;
+}, 1);
+        </code></pre>
+        <!-- Polymorphism --><!--
+        <pre><code class="javascript">
+var list = [1 1.1 "foo" null];
+var sum;
+for (var i = 0; i != 4; i++)
+    sum += list[i];
+        </code></pre>
+        -->
+        <!-- Add one for side-effects -->
+    </span>
+</section>
+
+<section>
+    <h3>Reflows &amp; Repaints</h3>
+    <p>Triggered by the</p>
+    <p class="em">Modification of displayed DOM elements.</p>
+    <div style="float:left; width:50%;">
+        <p style="text-align:center;">Desktop</p>
+        <p>~10ms</p>
+        <p>Smooth</p>
+    </div>
+    <div style="float:right; width: 50%; text-align:right;">
+        <p style="text-align:center;">Mobile</p>
+        <p>~100ms</p>
+        <p>Rough</p>
+    </div>
+</section>
+
+<section>
+  <h3>Algorithms</h3>
+  <a href="http://pixelatedgeek.com/2009/04/10-works-of-art-inspired-by-super-mario-bros/">
+    <img src="img/approx-mario.jpg" style="display:block;margin:auto;"/>
+  </a>
+  <p class="em">Fast &amp; Approximated  &nbsp;vs.&nbsp; Realist &amp; Slow</p>
+  <!-- Complexity http://xkcd.com/399/ -->
+</section>
+
+<section>
+  <h3>With</h3>
+  <p>With: Lookup properties <b>as-if</b>  it was a variable.</p>
+  <ul>
+    <li>No Object type.
+    <li>Unknown list of properties.
+    <li>Query everytime.
+    <li>Forbid JIT compilation.
+  </ul>
+  <!-- image: maze shortcut -->
+</section>
+
+<section>
+  <h3>Eval</h3>
+  <p>Parse &amp; Run &amp; Modify the local scope.</p>
+  <ul>
+    <li>Compile everytime.
+    <li>Short lifetime.
+    <li>Modify local variables.
+    <li>Forbid JIT compilation.
+  </p>
+  <!-- Like mercury mission, you go to space, and come back as fast as you went
+  to stay a few minutes in space where you go extremelly fast. http://history.nasa.gov/SP-4002/p1a.htm -->
+</section>
+
+<section>
+  <h3>Try-With-Eval Combo</h3>
+  <pre><code class="javascript">try {
+  with (obj) {
+    x = eval(property);
+  };
+} catch (var e) { … }
+  </code></pre>
+  <p>Are you scared now ?</p>
+  <div class=incremental><div>
+  <pre style="margin: 0px 75px;"><code class="javascript">
+if (property in obj) {
+  x = obj[property];
+} else { … }
+  </code></pre>
+  <p>Better now ?</p>
+</div></div>
+</section>
+
+<!-- GC effects -->
+<section>
+  <h3>The second GC effect</h3>
+  <p>What is the difference between:</p>
+  <div style="width:100%; height:40%;">
+    <div id="request-example" style="margin-left:5%; float:left; width:40%; height:100%;"></div>
+    <div style="margin-right:5%; float: right; width:45%;">
+      <span><input id="gc-interval" type="button" value="Animate 1"/>
+        <input id="gc-animFrame" type="button" value="Animate 2"/>
+        <input id="gc-none" type="button" value="no GC"/></span>
+      <p id="gc-refresh"></p>
+      <br>
+    </div>
+  </div>
+  </div>
+  <div class="incremental alternate" style="float:none">
+      <span id="scd-gc-effect">
+        <p>Are we smooth yet?</p>
+        <ul>
+          <li> 10 MB per frame.
+          <li> Frequent garbage collections.
+          <li> Worst animation ever!
+        </ul>
+      </span>
+    <p class="em">(1) setInterval vs. requestAnimationFrame (2)</p>
+  </div>
+  <script>
+    (function() {
+     var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+                                 window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+     window.requestAnimationFrame = requestAnimationFrame;
+    })();
+
+    (function (){
+      // TODO: Add support for other browers.
+      var gradient = "-moz-linear-gradient(bottom, rgb(251,10,81) %top%%, rgb(18,18,227) %bottom%%)";
+      // var template = "";
+      // var prefixes = ["-moz-"]; // , "-o-", "-moz-", "-webkit-", "-ms-"];
+      // for (prefix in prefixes)
+      //   template += prefixes[prefix] + gradient + ";";
+      var elem = document.getElementById("request-example");
+      var stat = document.getElementById("gc-refresh");
+
+      var size = 10000000;
+      var iter = 20000;
+      // var lastFrame = 0;
+
+      function compute(elaspedTime, dom, size, iter) {
+        var T = elaspedTime / 10000;
+        var p1 = 7;
+        var p2 = 5;
+        var p3 = 3;
+        var theta = 2 * Math.PI * ((T + 0.1) * (p1 * p2 * p3));
+        var limit = Math.cos(theta / (p1 * p2)) / 2 + 0.5;
+        var upper = Math.cos(theta / (p1 * p3)) / 2 + 0.5;
+        var lower = Math.cos(theta / (p2 * p3)) / 2 + 0.5;
+        var top = Math.floor(100 * limit * upper);
+        var bottom = 100 - Math.floor(100 * (1 - limit) * lower);
+        var style = gradient.replace(/%top%/g, top.toString()).replace(/%bottom%/g, bottom.toString());
+        // alert(style);
+        dom.style.backgroundImage = style;
+
+        // This allocation is only allocating short-live objects, this is fine
+        // for testing against browser without a generational GC.
+        if (size) {
+          var step = size / iter;
+          var temp = Array(size);
+          temp[0] = 0;
+          for (var i = 1; i < iter; i++)
+            temp[i * step] = temp[(i - 1) * step];
+        }
+        /*
+        if (elaspedTime)
+          stat.innerHTML = (elaspedTime - lastFrame) + " ms";
+        lastFrame = elaspedTime;
+        */
+        if (T >= 3) {
+          compute(0, dom);
+          return true;
+        }
+        return false;
+      }
+
+          document.getElementById("gc-interval").onclick = function() {
+            var start = Date.now();
+            var id = window.setInterval(function () {
+              var current = Date.now();
+              if (compute(current - start, elem, size, iter))
+                window.clearInterval(id);
+            }, 1000/60);
+          }
+          document.getElementById("gc-animFrame").onclick = function() {
+            // TODO: Use a different timer in other browsers.
+            var start = window.mozAnimationStartTime || Date.now();
+            function step(current) {
+              if (!current) current = Date.now();
+              var progress = current - start;
+              if (!compute(current - start, elem, size, iter))
+                requestAnimationFrame(step);
+             }
+             requestAnimationFrame(step);
+          }
+          document.getElementById("gc-none").onclick = function() {
+            // TODO: Use a different timer in other browsers.
+            var start = window.mozAnimationStartTime || Date.now();
+            function step(current) {
+              if (!current) current = Date.now();
+              var progress = current - start;
+              if (!compute(current - start, elem, 0, 0))
+                requestAnimationFrame(step);
+             }
+             requestAnimationFrame(step);
+          }
+
+      compute(0, elem, 0, 0);
+    })()
+  </script>
+</section>
+
+<!-- Add more details about requestAnimationFrame -->
+
+<section>
+  <h2>Just-In-Time</h2>
+  <ul>
+    <li>Type Inference.
+    <li>Deoptimization.
+    <li>Polymorphism.
+    <li>Double vs. Int.
+    <li>Typed Arrays.
+    <li>Meta.
+  </ul>
+</section>
+
+<!-- Type inference -->
+<section>
+  <h3>Better Typed</h3>
+  <p>What is the following code doing:</p>
+  <pre><code>
+  a + b
+  </code></pre>
+  <ul class="incremental">
+    <li>Number Addition
+    <li>String Concatenation
+    <li>Play a CSS animation <!-- You don't believe me, just try it in your
+    browser, you will understand that such loose typing system is kind of
+    annoying. -->
+  </ul>
+  <script>
+    var a = { valueOf: function () {
+      window.location = "https://developer.mozilla.org/en-US/demos/detail/css-nyan-cat/launch";
+      return 0;
+    } };
+    var b = 0;
+  </script>
+</section>
+
+<section class="profiler">
+  <h3>Javascript Typing</h3>
+  <p>3 steps for optimizing with types:</p>
+  <ul>
+    <li>Type monitoring
+      <!-- Look at every instruction, and record the type of the expression,
+    show exxample after compilation. -->
+    <li>Type inference
+      <!-- Type inference guess the type of the javascript.  The type inference
+           provide an upper bound to the range of possible type visible after
+      the evaluation of an instruction. -->
+    <li>Type barriers
+      <!-- When the observed type and the infered type are not matching the type
+    inference system, as opposed to conventional type inference system of
+    statically compiled language will assume that we stay with the observed
+    type, and ask the JIT to ensure that this assumption does not fail. -->
+  </ul>
+  <div class="incremental alternate">
+    <textarea class="input" rows=8 cols=36>
+function f(){
+  for (var i = 0; i != 100; i++) {
+    var x = new Array(1,2,3.1);
+    x[0] = x[0] ^ x[1];
+    x[1] = x[1] ^ x[2];
+    x[2] = x[2] ^ x[0];
+  }
+}
+f;
+    </textarea>
+    <pre><code class="output" highlight="types"></code></pre>
+    <pre><code class="output" highlight="barrier"></code></pre>
+  </div>
+  <div class="status" style="display:none;"></div>
+</section>
+
+<section class="profiler">
+  <h3>Optimistic Typing</h3>
+  <p>Deduced writes &gt; Observed reads   implies   <span
+    highlight="barrier"><span class="barrier">barriers</span></span</p>
+  <p>Deduced writes == Observed reads   implies   no barriers</p>
+  <div class="incremental alternate" style="margin-top:20px;">
+    <textarea class="input" rows=12 cols=36>
+var arr = [0, 0.5];
+function g(){
+  var x;
+  var i = arr.length;
+  // arr[i] = arr[i - 1] + 0.5;
+  arr[i] = arr[i - 2] + 1;
+  ++i;
+  arr[i] = arr[i - 2] + 1;
+}
+g;
+    </textarea>
+    <pre><code class="output" highlight="types"></code></pre>
+    <pre><code class="output" highlight="barrier"></code></pre>
+  </div>
+  <div class="status" style="display:none;"></div>
+</section>
+
+<!--
+<section class="profiler">
+  <h3>Playing with Doubles</h3>
+  <div class="incremental alternate">
+    <textarea class="input" rows=13 cols=36>
+function iter(){
+  var t1 = lastValue * 1234.5;
+  var t2 = t1 | 0;
+  if (t1 != t2)
+    t1 = t2;
+  lastValue = t1 + 9876;
+}
+var lastValue = 0;
+iter;
+    </textarea>
+    <pre><code class="output" highlight="types"></code></pre>
+    <pre><code class="output" highlight="barrier"></code></pre>
+  </div>
+  <div class="status" style="display:none;"></div>
+</section>
+-->
+
+<!-- Deoptimization -->
+<section>
+  <h3>Deoptimizations</h3>
+  <!-- Houston, we'got a problem -->
+  <p>Causes:</p>
+  <ul>
+    <li>New observed type.
+    <li>New infered type.
+    <li>Overflow. (Int to Double)
+    <li>Imposible representations. (NaN, Infinity, -0)
+    <li>etc …
+  </ul>
+  <p>Resume in the interpreter.</p>
+</section>
+
+<!-- Polymorphism -->
+<section>
+    <h3>Polymorphism</h3>
+    <p>Expecting multiple types in one location</p>
+    <ul>
+      <li>Polymorphic objects (Inline caches).
+      <!-- TODO: Do a section on inline caches ? -->
+      <li>Various primitive types.
+      <!-- TODO: I Should at least warn about it. -->
+    </ul>
+</section>
+
+<!-- Random stuff which would be nice to present if there is enough time … -->
+<section>
+  <h3>LICM &amp; GVN</h3>
+</section>
+
+<section>
+  <h3>Side-Effects</h3>
+  <p>Compiler principles:</p>
+  <p>Cannot be moved safely</p>
+  <p>Need to handle recovery</p> <!-- deal with IonMonkey principles -->
+</section>
+
+<!-- Double vs. Int -->
+<section>
+  <h3>Standard Tricks</h3>
+  <p>Overflow checks</p>
+</section>
+
+<!-- Typed Arrays -->
+<section>
+  <h3>Types Arrays</h3>
+  <!-- Integrate JSLinux -->
+</section>
+
+<!-- Meta JIT -->
+<section>
+  <h3>Meta: JIT in JS</h3>
+  <p>Useful use of Eval</p>
+  <p>Code generation</p>
+  <p>Deforestation</p>
+  <!-- It is costly to evaluate send something everytime in orbit just to stay
+  in space, so we have made space stations, such as we can stay longer into
+  space.  This is the same with eval, a function declaration in an eval
+  statement is like an ISS module which stay in orbit, you built it once send it
+  and re-use it. -->
+</section>
+
+<section>
+    <h2>Conclusion</h2>
+</section>
+
+
+<section>
+    <h3>Links: Reflows &amp; Repaints</h3>
+    <ul>
+        <li><a href="http://floatlearning.com/2011/06/the-cost-of-reflows-on-a-web-app/">The Cost of Reflows on a Web App</a>
+        <li><a href="http://blog.mozilla.org/gen/2009/04/09/how-to-make-your-own-gecko-reflow-video/">How to make your own Gecko reflow video</a>
+        <li><a href="http://dev.opera.com/articles/view/efficient-javascript/?page=3#reflow">Efficient Javascript</a>
+        <li><a href="https://developers.google.com/speed/articles/javascript-dom">Speeding up JavaScript: Working with the DOM</a>
+    </ul>
+<section/>
+
+<section>
+    <h3>Links: Type System</h3>
+    <p></p>
+    <ul>
+        <li><a href="http://dl.acm.org/citation.cfm?id=2254094">Fast and precise hybrid type inference for JavaScript</a>
+        <li><a href="https://addons.mozilla.org/en-us/firefox/addon/jit-inspector/">JIT Inspector — Brian Hackett</a>
+        <li><a href="http://people.mozilla.com/~npierron/js-profile/profile.html">JS Profiler — Nicolas B. Pierron</a>
+    </ul>
+<section/>
+
+<!--
+<section>
+    <h3>Short history of JITs in SM</h3>
+    <ul class="incremental">
+      <li>TraceMonkey <em>(Tracing JIT, Firefox 3.5 - Firefox 11)</em>
+      <li>JägerMonkey <em>("Simple" Method-JIT, Firefox 4, boosted in Firefox 9)</em>
+      <li>IonMonkey <em>("Textbook Compiler", SSA, type specialization, GVN, DCE &hellip;)</em>
+    </ul>
+</section>
+
+-->
+
+<!-- Your Style -->
+<!-- Define the style of your presentation -->
+<script src="js/profile.js"></script>
+<link rel="stylesheet" href="styles/profile.css">
+
+
+<!-- Highlight sources -->
+<link rel="stylesheet" href="styles/default.css">
+<script src="js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+</script>
+<!-- Maybe a font from http://www.google.com/webfonts ? -->
+<link href='http://fonts.googleapis.com/css?family=Oswald' rel='stylesheet'>
+
+<style>
+  html, .view body { background-color: black; counter-reset: slideidx; }
+  body, .view section { background-color: white; border-radius: 12px }
+  /* A section is a slide. It's size is 800x600, and this will never change */
+  section, .view head > title {
+      /* The font from Google */
+      font-family: 'Oswald', arial, serif;
+      font-size: 30px;
+  }
+
+  .view section:after {
+    counter-increment: slideidx;
+    content: counter(slideidx, decimal-leading-zero);
+    position: absolute; bottom: -80px; right: 100px;
+    color: white;
+  }
+
+  .view head > title {
+    color: white;
+    text-align: center;
+    margin: 1em 0 1em 0;
+  }
+
+  h1 {
+    margin-top: 1em;
+    text-align: center;
+    font-size: 3em;
+  }
+
+  h2 {
+    margin: 0em;
+    padding: 0em;
+    text-align: center;
+    font-size: 2em;
+    background-color: #F3F4F8;
+    background-image: -moz-linear-gradient(top, #E3E4E8 50%, white 100%);
+    border-bottom: 1px solid #CCC;
+  }
+
+  h3 {
+    margin: 0em;
+    padding: 0.25em 0em;
+    text-align: center;
+    font-size: 1.5em;
+    background-color: #F3F4F8;
+    background-image: -moz-linear-gradient(top, #E3E4E8 0%, white 50%);
+    border-bottom: 1px solid #CCC;
+  }
+
+  ul {
+      margin: 10px 105px;
+  }
+  ul ul {
+      margin: 10px 30px 10px 0;
+  }
+
+  p {
+    margin:  0px 75px;
+  }
+
+  .em {
+    text-align:center;
+    margin: 1em 75px;
+  }
+
+  section > span {
+    margin:  0px 75px;
+  }
+  section > pre {
+    margin: 0px 75px;
+  }
+
+  textarea {
+    margin: 0px 75px;
+    height: 40%;
+    font-size: 1em;
+    border: 0px;
+  }
+
+  blockquote {
+    background-color: black;
+    color: white;
+    font-size: 60px;
+  }
+  blockquote:before {
+    content: open-quote;
+  }
+  blockquote:after {
+    content: close-quote;
+  }
+
+  /* Figures are displayed full-page, with the caption
+     on top of the image/video */
+  figure {
+    background-color: black;
+    width: 100%;
+    height: 100%;
+  }
+  figure > * {
+    position: absolute;
+  }
+  figure > img, figure > video {
+    width: 100%; height: 100%;
+  }
+  figcaption {
+    margin: 70px;
+    font-size: 50px;
+  }
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: 40px;
+    text-align: right;
+    background-color: #F3F4F8;
+    border-top: 1px solid #CCC;
+    font-size: 0.8em;
+  }
+
+  /* Transition effect */
+  /* Feel free to change the transition effect for original
+     animations. See here:
+     https://developer.mozilla.org/en/CSS/CSS_transitions
+     How to use CSS3 Transitions: */
+  section {
+    -moz-transition: left 400ms linear 0s;
+    -webkit-transition: left 400ms linear 0s;
+    -ms-transition: left 400ms linear 0s;
+    transition: left 400ms linear 0s;
+  }
+  .view section {
+    -moz-transition: none;
+    -webkit-transition: none;
+    -ms-transition: none;
+    transition: none;
+  }
+
+  .view section[aria-selected] {
+    border: 5px red solid;
+  }
+
+  /* Before */
+  section { left: -150%; }
+  /* Now */
+  section[aria-selected] { left: 0; }
+  /* After */
+  section[aria-selected] ~ section { left: +150%; }
+
+  /* Incremental elements */
+
+  /* By default, visible */
+  .incremental > * { opacity: 1; }
+
+  /* The current item */
+  .incremental > *[aria-selected] { opacity: 1; }
+
+  /* The items to-be-selected */
+  .incremental > *[aria-selected] ~ * { opacity: 0; }
+
+  /* Any */
+  .alternate > * { display: none; }
+  /* Now */
+  .alternate > *[aria-selected] { display: block; }
+
+  /* The progressbar, at the bottom of the slides, show the global
+     progress of the presentation. */
+  #progress-bar {
+    height: 4px;
+    background: #AAA;
+  }
+</style>
+
+<!-- {{{{ dzslides core
+#
+#
+#     __  __  __       .  __   ___  __
+#    |  \  / /__` |    | |  \ |__  /__`
+#    |__/ /_ .__/ |___ | |__/ |___ .__/ core :€
+#
+#
+# The following block of code is not supposed to be edited.
+# But if you want to change the behavior of these slides,
+# feel free to hack it!
+#
+-->
+
+<div id="progress-bar"></div>
+
+<!-- Default Style -->
+<style>
+  * { margin: 0; padding: 0; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box; }
+  details { display: none; }
+  body {
+    width: 800px; height: 600px;
+    margin-left: -400px; margin-top: -300px;
+    position: absolute; top: 50%; left: 50%;
+    overflow: hidden;
+    display: none;
+  }
+  .view body {
+    position: static;
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    display: inline-block;
+    overflow: visible; overflow-x: hidden;
+    /* undo Dz.onresize */
+    transform: none !important;
+    -moz-transform: none !important;
+    -webkit-transform: none !important;
+    -o-transform: none !important;
+    -ms-transform: none !important;
+  }
+  .view head, .view head > title { display: block }
+  section {
+    position: absolute;
+    pointer-events: none;
+    width: 100%; height: 100%;
+  }
+  .view section {
+    pointer-events: auto;
+    position: static;
+    width: 800px; height: 600px;
+    margin: -150px -200px;
+    float: left;
+
+    transform: scale(.4);
+    -moz-transform: scale(.4);
+    -webkit-transform: scale(.4);
+    -o-transform: scale(.4);
+    -ms-transform: scale(.4);
+  }
+  .view section > * { pointer-events: none; }
+  section[aria-selected] { pointer-events: auto; }
+  html { overflow: hidden; }
+  html.view { overflow: visible; }
+  body.loaded { display: block; }
+  .incremental {visibility: hidden; }
+  .incremental[active] {visibility: visible; }
+  .alternate { display: none; }
+  .alternate[active] { display: block; }
+  #progress-bar{
+    bottom: 0;
+    position: absolute;
+    -moz-transition: width 400ms linear 0s;
+    -webkit-transition: width 400ms linear 0s;
+    -ms-transition: width 400ms linear 0s;
+    transition: width 400ms linear 0s;
+  }
+  .view #progress-bar {
+    display: none;
+  }
+</style>
+
+<script>
+  var Dz = {
+    remoteWindows: [],
+    idx: -1,
+    step: 0,
+    html: null,
+    slides: null,
+    progressBar : null,
+    params: {
+      autoplay: "1"
+    }
+  };
+
+  Dz.init = function() {
+    document.body.className = "loaded";
+    this.slides = Array.prototype.slice.call($$("body > section"));
+    this.progressBar = $("#progress-bar");
+    this.html = document.body.parentNode;
+    this.setupParams();
+    this.onhashchange();
+    this.setupTouchEvents();
+    this.onresize();
+    this.setupView();
+  }
+
+  Dz.setupParams = function() {
+    var p = window.location.search.substr(1).split('&');
+    p.forEach(function(e, i, a) {
+      var keyVal = e.split('=');
+      Dz.params[keyVal[0]] = decodeURIComponent(keyVal[1]);
+    });
+  // Specific params handling
+    if (!+this.params.autoplay)
+      $$.forEach($$("video"), function(v){ v.controls = true });
+  }
+
+  Dz.onkeydown = function(aEvent) {
+    // Don't intercept keyboard shortcuts
+    if (aEvent.altKey
+      || aEvent.ctrlKey
+      || aEvent.metaKey
+      || aEvent.shiftKey) {
+      return;
+    }
+    if ( aEvent.keyCode == 37 // left arrow
+      || aEvent.keyCode == 38 // up arrow
+      || aEvent.keyCode == 33 // page up
+    ) {
+      aEvent.preventDefault();
+      this.back();
+    }
+    if ( aEvent.keyCode == 39 // right arrow
+      || aEvent.keyCode == 40 // down arrow
+      || aEvent.keyCode == 34 // page down
+    ) {
+      aEvent.preventDefault();
+      this.forward();
+    }
+    if (aEvent.keyCode == 35) { // end
+      aEvent.preventDefault();
+      this.goEnd();
+    }
+    if (aEvent.keyCode == 36) { // home
+      aEvent.preventDefault();
+      this.goStart();
+    }
+    if (aEvent.keyCode == 32) { // space
+      aEvent.preventDefault();
+      this.toggleContent();
+    }
+    if (aEvent.keyCode == 70) { // f
+      aEvent.preventDefault();
+      this.goFullscreen();
+    }
+    if (aEvent.keyCode == 79) { // o
+      aEvent.preventDefault();
+      this.toggleView();
+    }
+  }
+
+  /* Touch Events */
+
+  Dz.setupTouchEvents = function() {
+    var orgX, newX;
+    var tracking = false;
+
+    var db = document.body;
+    db.addEventListener("touchstart", start.bind(this), false);
+    db.addEventListener("touchmove", move.bind(this), false);
+
+    function start(aEvent) {
+      aEvent.preventDefault();
+      tracking = true;
+      orgX = aEvent.changedTouches[0].pageX;
+    }
+
+    function move(aEvent) {
+      if (!tracking) return;
+      newX = aEvent.changedTouches[0].pageX;
+      if (orgX - newX > 100) {
+        tracking = false;
+        this.forward();
+      } else {
+        if (orgX - newX < -100) {
+          tracking = false;
+          this.back();
+        }
+      }
+    }
+  }
+
+  Dz.setupView = function() {
+    document.body.addEventListener("click", function ( e ) {
+      if (!Dz.html.classList.contains("view")) return;
+      if (!e.target || e.target.nodeName != "SECTION") return;
+
+      Dz.html.classList.remove("view");
+      Dz.setCursor(Dz.slides.indexOf(e.target) + 1);
+    }, false);
+  }
+
+  /* Adapt the size of the slides to the window */
+
+  Dz.onresize = function() {
+    var db = document.body;
+    var sx = db.clientWidth / window.innerWidth;
+    var sy = db.clientHeight / window.innerHeight;
+    var transform = "scale(" + (1/Math.max(sx, sy)) + ")";
+
+    db.style.MozTransform = transform;
+    db.style.WebkitTransform = transform;
+    db.style.OTransform = transform;
+    db.style.msTransform = transform;
+    db.style.transform = transform;
+  }
+
+
+  Dz.getDetails = function(aIdx) {
+    var s = $("section:nth-of-type(" + aIdx + ")");
+    var d = s.$("details");
+    return d ? d.innerHTML : "";
+  }
+
+  Dz.onmessage = function(aEvent) {
+    var argv = aEvent.data.split(" "), argc = argv.length;
+    argv.forEach(function(e, i, a) { a[i] = decodeURIComponent(e) });
+    var win = aEvent.source;
+    if (argv[0] === "REGISTER" && argc === 1) {
+      this.remoteWindows.push(win);
+      this.postMsg(win, "REGISTERED", document.title, this.slides.length);
+      this.postMsg(win, "CURSOR", this.idx + "." + this.step);
+      return;
+    }
+    if (argv[0] === "BACK" && argc === 1)
+      this.back();
+    if (argv[0] === "FORWARD" && argc === 1)
+      this.forward();
+    if (argv[0] === "START" && argc === 1)
+      this.goStart();
+    if (argv[0] === "END" && argc === 1)
+      this.goEnd();
+    if (argv[0] === "TOGGLE_CONTENT" && argc === 1)
+      this.toggleContent();
+    if (argv[0] === "SET_CURSOR" && argc === 2)
+      window.location.hash = "#" + argv[1];
+    if (argv[0] === "GET_CURSOR" && argc === 1)
+      this.postMsg(win, "CURSOR", this.idx + "." + this.step);
+    if (argv[0] === "GET_NOTES" && argc === 1)
+      this.postMsg(win, "NOTES", this.getDetails(this.idx));
+  }
+
+  Dz.toggleContent = function() {
+    // If a Video is present in this new slide, play it.
+    // If a Video is present in the previous slide, stop it.
+    var s = $("section[aria-selected]");
+    if (s) {
+      var video = s.$("video");
+      if (video) {
+        if (video.ended || video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
+      }
+    }
+  }
+
+  Dz.setCursor = function(aIdx, aStep) {
+    // If the user change the slide number in the URL bar, jump
+    // to this slide.
+    aStep = (aStep != 0 && typeof aStep !== "undefined") ? "." + aStep : ".0";
+    window.location.hash = "#" + aIdx + aStep;
+  }
+
+  Dz.onhashchange = function() {
+    var cursor = window.location.hash.split("#"),
+        newidx = 1,
+        newstep = 0;
+    if (cursor.length == 2) {
+      newidx = ~~cursor[1].split(".")[0];
+      newstep = ~~cursor[1].split(".")[1];
+      if (newstep > Dz.slides[newidx - 1].$$('.incremental > *').length) {
+        newstep = 0;
+        newidx++;
+      }
+    }
+    this.setProgress(newidx, newstep);
+    if (newidx != this.idx) {
+      this.setSlide(newidx);
+    }
+    if (newstep != this.step) {
+      this.setIncremental(newstep);
+    }
+    for (var i = 0; i < this.remoteWindows.length; i++) {
+      this.postMsg(this.remoteWindows[i], "CURSOR", this.idx + "." + this.step);
+    }
+  }
+
+  Dz.back = function() {
+    if (this.idx == 1 && this.step == 0) {
+      return;
+    }
+    if (this.step == 0) {
+      this.setCursor(this.idx - 1,
+                     this.slides[this.idx - 2].$$('.incremental > *').length);
+    } else {
+      this.setCursor(this.idx, this.step - 1);
+    }
+  }
+
+  Dz.forward = function() {
+    if (this.idx >= this.slides.length &&
+        this.step >= this.slides[this.idx - 1].$$('.incremental > *').length) {
+        return;
+    }
+    if (this.step >= this.slides[this.idx - 1].$$('.incremental > *').length) {
+      this.setCursor(this.idx + 1, 0);
+    } else {
+      this.setCursor(this.idx, this.step + 1);
+    }
+  }
+
+  Dz.goStart = function() {
+    this.setCursor(1, 0);
+  }
+
+  Dz.goEnd = function() {
+    var lastIdx = this.slides.length;
+    var lastStep = this.slides[lastIdx - 1].$$('.incremental > *').length;
+    this.setCursor(lastIdx, lastStep);
+  }
+
+  Dz.toggleView = function() {
+    this.html.classList.toggle("view");
+
+    if (this.html.classList.contains("view")) {
+      $("section[aria-selected]").scrollIntoView(true);
+    }
+  }
+
+  Dz.setSlide = function(aIdx) {
+    this.idx = aIdx;
+    var old = $("section[aria-selected]");
+    var next = $("section:nth-of-type("+ this.idx +")");
+    if (old) {
+      old.removeAttribute("aria-selected");
+      var video = old.$("video");
+      if (video) {
+        video.pause();
+      }
+    }
+    if (next) {
+      next.setAttribute("aria-selected", "true");
+      if (this.html.classList.contains("view")) {
+        next.scrollIntoView();
+      }
+      var video = next.$("video");
+      if (video && !!+this.params.autoplay) {
+        video.play();
+      }
+    } else {
+      // That should not happen
+      this.idx = -1;
+      // console.warn("Slide doesn't exist.");
+    }
+  }
+
+  Dz.setIncremental = function(aStep) {
+    this.step = aStep;
+    var old = this.slides[this.idx - 1].$('.incremental > *[aria-selected]');
+    if (old) {
+      old.removeAttribute('aria-selected');
+    }
+    var incrementals = $$('.incremental');
+    if (this.step <= 0) {
+      $$.forEach(incrementals, function(aNode) {
+        aNode.removeAttribute('active');
+      });
+      return;
+    }
+    var next = this.slides[this.idx - 1].$$('.incremental > *')[this.step - 1];
+    if (next) {
+      next.setAttribute('aria-selected', true);
+      next.parentNode.setAttribute('active', true);
+      var found = false;
+      $$.forEach(incrementals, function(aNode) {
+        if (aNode != next.parentNode)
+          if (found)
+            aNode.removeAttribute('active');
+          else
+            aNode.setAttribute('active', true);
+        else
+          found = true;
+      });
+    } else {
+      setCursor(this.idx, 0);
+    }
+    return next;
+  }
+
+  Dz.goFullscreen = function() {
+    var html = $('html'),
+        requestFullscreen = html.requestFullscreen || html.requestFullScreen || html.mozRequestFullScreen || html.webkitRequestFullScreen;
+    if (requestFullscreen) {
+      requestFullscreen.apply(html);
+    }
+  }
+  
+  Dz.setProgress = function(aIdx, aStep) {
+    var slide = $("section:nth-of-type("+ aIdx +")");
+    if (!slide)
+      return;
+    var steps = slide.$$('.incremental > *').length + 1,
+        slideSize = 100 / (this.slides.length - 1),
+        stepSize = slideSize / steps;
+    this.progressBar.style.width = ((aIdx - 1) * slideSize + aStep * stepSize) + '%';
+  }
+  
+  Dz.postMsg = function(aWin, aMsg) { // [arg0, [arg1...]]
+    aMsg = [aMsg];
+    for (var i = 2; i < arguments.length; i++)
+      aMsg.push(encodeURIComponent(arguments[i]));
+    aWin.postMessage(aMsg.join(" "), "*");
+  }
+
+    var old = window.onload;
+    function init() {
+      Dz.init();
+      window.onkeydown = Dz.onkeydown.bind(Dz);
+      window.onresize = Dz.onresize.bind(Dz);
+      window.onhashchange = Dz.onhashchange.bind(Dz);
+      window.onmessage = Dz.onmessage.bind(Dz);
+
+      if(old)
+        old();
+    }
+    window.onload = init;
+</script>
+
+
+<script> // Helpers
+  if (!Function.prototype.bind) {
+    Function.prototype.bind = function (oThis) {
+
+      // closest thing possible to the ECMAScript 5 internal IsCallable
+      // function 
+      if (typeof this !== "function")
+      throw new TypeError(
+        "Function.prototype.bind - what is trying to be fBound is not callable"
+      );
+
+      var aArgs = Array.prototype.slice.call(arguments, 1),
+          fToBind = this,
+          fNOP = function () {},
+          fBound = function () {
+            return fToBind.apply( this instanceof fNOP ? this : oThis || window,
+                   aArgs.concat(Array.prototype.slice.call(arguments)));
+          };
+
+      fNOP.prototype = this.prototype;
+      fBound.prototype = new fNOP();
+
+      return fBound;
+    };
+  }
+
+  var $ = (HTMLElement.prototype.$ = function(aQuery) {
+    return this.querySelector(aQuery);
+  }).bind(document);
+
+  var $$ = (HTMLElement.prototype.$$ = function(aQuery) {
+    return this.querySelectorAll(aQuery);
+  }).bind(document);
+
+  $$.forEach = function(nodeList, fun) {
+    Array.prototype.forEach.call(nodeList, fun);
+  }
+
+</script>
+<!-- vim: set fdm=marker: }}} -->

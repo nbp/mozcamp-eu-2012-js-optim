@@ -1,0 +1,161 @@
+
+.profiler {
+    /*border: 1px solid black;*/
+    /*width: 100%;*/
+    /*height: 100%;*/
+}
+
+.tests {
+    /*border: 0px solid black;*/
+    /*display: box;*/
+    /*display: -moz-box;*/
+    /*-moz-box-orient:horizontal;*/
+    /*box-orient:horizontal;*/
+    /*width: 100%;*/
+    /*height: 500px;*/
+}
+
+.status {
+    /*height: 300px;*/
+}
+
+.tests pre {
+    /*width: 2000px;*/
+    /*box-flex: 1;*/
+    /*-moz-box-flex: 1;*/
+    /*border: 1px solid red;*/
+}
+
+.tests .input {
+    /*width: 2000px;*/
+    /*box-flex: 1;*/
+    /*-moz-box-flex: 1;*/
+    /*border: 1px solid green;*/
+}
+
+.counts :not(:first-child):before {
+    content: ", ";
+}
+
+[highlight~=barrier] .barrier {
+    font-weight: bold;
+    text-decoration:underline;
+}
+
+
+[highlight~=activity] .activity1 {
+    box-shadow: 0px 0px 1px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity2 {
+    box-shadow: 0px 0px 2px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity3 {
+    box-shadow: 0px 0px 3px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity4 {
+    box-shadow: 0px 0px 4px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity5 {
+    box-shadow: 0px 0px 5px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity6 {
+    box-shadow: 0px 0px 6px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity7 {
+    box-shadow: 0px 0px 7px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity8 {
+    box-shadow: 0px 0px 8px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity9 {
+    box-shadow: 0px 0px 9px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=activity] .activity10 {
+    box-shadow: 0px 0px 10px 0px rgb(255, 0, 0) inset;
+}
+
+
+
+[highlight~=types] .types1 {
+    box-shadow: 0px 0px 1px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types2 {
+    box-shadow: 0px 0px 2px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types3 {
+    box-shadow: 0px 0px 3px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types4 {
+    box-shadow: 0px 0px 4px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types5 {
+    box-shadow: 0px 0px 5px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types6 {
+    box-shadow: 0px 0px 6px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types7 {
+    box-shadow: 0px 0px 7px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types8 {
+    box-shadow: 0px 0px 8px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types9 {
+    box-shadow: 0px 0px 9px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .types10 {
+    box-shadow: 0px 0px 10px 0px rgb(255, 0, 0) inset;
+}
+
+[highlight~=types] .t_undefined {
+    color: black;
+}
+[highlight~=types] .t_null {
+    color: black;
+}
+[highlight~=types] .t_boolean {
+    color: black;
+}
+[highlight~=types] .t_int32 {
+    color: #6699ff;
+}
+
+[highlight~=types] .t_double {
+    color: brown;
+}
+[highlight~=types] .t_string {
+    color: darkgreen;
+}
+[highlight~=types] .t_object {
+    color: blue;
+}
+
+[highlight~=types] .t_unknown {
+    color: red;
+}
+[highlight~=types] .t_other {
+    color: red;
+}
+
+[highlight~=types] .t_conflict {
+    color: red;
+}
+
