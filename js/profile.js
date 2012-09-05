@@ -308,9 +308,10 @@ Profiler.prototype.render = function () {
     
     var meanTime = this.deltaTimes.reduce(function (a, b) a + b) / this.deltaTimes.length;
     var m = "";
-    m += "Time: " + meanTime + " ms";
-    m += ", FPS: " + (1000 / meanTime);
-    // this.message.innerHTML = m;
+    m += "Avg. Time: " + meanTime + " ms";
+    //m += ", FPS: " + (1000 / meanTime);
+    if (this.message)
+      this.message.innerHTML = m;
 };
 
 Profiler.prototype.benchmark = function __benchmark__ () {

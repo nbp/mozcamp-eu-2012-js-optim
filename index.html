@@ -25,14 +25,14 @@
   <pre><code class="javascript">
 var name = "Nicolas B. Pierron";
 var ircName = "nbp";
-var work = "IonMonkey Hacker";
-var workplace = " \
-  JS Pit (aka. Monkey Island)";
+var work = "SpiderMonkey Hacker";
+var workplace = "Monkey Island";
 
 var outsideMozillaActivites = " \
-  runs his own Linux distribution and \
+  runs his own Linux distribution, \
+  uses git instead of mercurial and \
   tries to make funny presentation … \
-  … without success.";
+      … without success.";
 
 var faq = "Why B ?";
   </code></pre>
@@ -56,16 +56,33 @@ var faq = "Why B ?";
     <li>Explanation of some optimizations.
     <li>Nice examples.
     <li>Work best (only) in Firefox.
-    <li>Not only composed of bullet points.
+    <!-- <li>Not only composed of bullet points.
+    — review: One joke every 2 slide at best -->
   </ul>
   <p>Feel free to ask questions at any time.</p>
+</section>
+
+<section>
+  <h3>about:context</h3>
+  <p>About Javascript:</p>
+  <ul>
+    <li>Different engines. (SpiderMonkey, v8, JSC, …)
+    <li>Translated to machine code at runtime.
+  </ul>
+  <p>About SpiderMonkey features:</p>
+  <ul>
+    <li>Bytecode interpreter.
+    <li>Type Inference.
+    <li>Jäeger Monkey.
+    <li>IonMonkey Compiler.
+  </ul>
 </section>
 
 <!-- Part 1: Main cause of slowdown not related with Jitted code. -->
 <section>
   <h2>Javascript is Fast</h2>
     <div style="text-align:center; margin:auto; display:block" active="">
-      <img src="img/jsv8-chartshape.png"/>
+      <img width="250px" src="img/jsv8-chartshape.png"/>
       <p><a href="http://shootout.alioth.debian.org/u32/code-used-time-used-shapes.php#shapes">Computer Language Benchmarks Game</a></p>
     </div>
   <div class="incremental">
@@ -73,6 +90,7 @@ var faq = "Why B ?";
   </div>
 </section>
 
+<!--
 <section>
   <h3>Disclaimer</h3>
   <p style="text-align:justify;">The next slides do not contain any apocalyptic prediction concerning the
@@ -81,45 +99,45 @@ var faq = "Why B ?";
   <p style="text-align:justify;">Please, be careful while using such pieces of code in production, it
   might be dangerous for your users.</p>
 </section>
+-->
 
 <section>
     <h2>Javascript is Fast</h2>
     <!-- TODO: Add disclaimer to avoid scaring people too much. -->
     <p>Except with</p>
     <ul>
-        <li>Reflows
-        <li>Repaints
-        <li>Bad algorithms
+        <li>Reflows &amp; Repaints
+        <li>Bad Timing &amp; Bad algorithms
         <li>Dynamic features
         <li>GCs
     </ul>
-    <span class="incremental alternate">
-        <pre><code class="javascript">
-// Reflow
-document.getElementById("foo")
-  .style.width = '666px';
-        </code></pre>
-        <pre><code class="javascript">
-// Repaint
-document.getElementById("bar")
-  .style.color = "#666";
-        </code></pre>
-        <pre><code class="javascript">
-var a = 18, b = 37, mul = 0;
-for (var i = 0; i != b; i++)
-  mul += a;
-        </code></pre>
-        <pre><code class="javascript">
-var obj = { baz : 0x29a; };
-var property = "baz";
-with (obj) { eval(property); };
-        </code></pre>
-        <pre><code class="javascript">
-setInterval(function () {
-  var arr = new Array(1000000);
-  arr[0] = (0xdead - 0xbeef) / 12.2012;
-}, 1);
-        </code></pre>
+    <!--<span class="incremental alternate">-->
+<!--        <pre><code class="javascript">-->
+<!--// Reflow-->
+<!--document.getElementById("foo")-->
+  <!--.style.width = '420px';-->
+        <!--</code></pre>-->
+        <!--<pre><code class="javascript">-->
+<!--// Repaint-->
+<!--document.getElementById("bar")-->
+  <!--.style.color = "#420";-->
+        <!--</code></pre>-->
+        <!--<pre><code class="javascript">-->
+<!--var a = 6, b = 7, mul = 0;-->
+<!--for (var i = 0; i != b; i++)-->
+  <!--mul += a;-->
+        <!--</code></pre>-->
+        <!--<pre><code class="javascript">-->
+<!--var obj = { B : 0x42; };-->
+<!--var property = "B";-->
+<!--with (obj) { eval(property); };-->
+        <!--</code></pre>-->
+        <!--<pre><code class="javascript">-->
+<!--setInterval(function () {-->
+  <!--var arr = new Array(1000000);-->
+  <!--arr[0] = 0xdeadbeef;-->
+<!--}, 1);-->
+        <!--</code></pre>-->
         <!-- Polymorphism --><!--
         <pre><code class="javascript">
 var list = [1 1.1 "foo" null];
@@ -129,13 +147,14 @@ for (var i = 0; i != 4; i++)
         </code></pre>
         -->
         <!-- Add one for side-effects -->
-    </span>
+    <!--</span>-->
 </section>
 
 <section>
     <h3>Reflows &amp; Repaints</h3>
     <p>Triggered by the</p>
     <p class="em">Modification of displayed DOM elements.</p>
+    <div style="display:block; height:20%;">
     <div style="float:left; width:50%;">
         <p style="text-align:center;">Desktop</p>
         <p>~10ms</p>
@@ -146,6 +165,162 @@ for (var i = 0; i != 4; i++)
         <p>~100ms</p>
         <p>Rough</p>
     </div>
+  </div>
+    <pre><code class="javascript">
+var x = document.getElementById("foo");
+x.style.color = "#420"; // Repaint
+x.style.width = '420px'; // Reflow
+    </code></pre>
+</section>
+
+<section>
+  <h3>Right on Time</h3>
+  <p>Different way of timing:</p>
+  <div style="display:block; width=70%; margin: 0px 75px; text-align:center">
+    <span style="dosplay:block; width:100%; margin: 0px auto;">
+      <input id="sync-timeout" type="button" value="setTimeout"/>
+      <input id="sync-interval" type="button" value="setInterval"/>
+      <input id="sync-animFrame" type="button" value="requestAnimationFrame"/>
+    </span>
+    <div style="display:block; margin 0px auto; text-align:center;">
+      <canvas id="sync-clock" width="200" height="200" style="position: ;">
+    </div>
+  </div>
+    <p>Radius : Frame time             Angle :  Repaint phase shift</p>
+    <ol>
+      <li>setTimeout — Not stable.
+      <li>setInterval — Stable, not synced with repaints.
+      <li>requestAnimationFrame — Stable and synced.
+    </ol>
+  <script>
+    (function() {
+     var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+                                 window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+     window.requestAnimationFrame = requestAnimationFrame;
+    })();
+
+    (function (){
+      var meanFrameTime = 1000 / 60;
+      var printDate = Date.now();
+      function resetPrintDate() {
+        var current = Date.now();
+        meanFrameTime = meanFrameTime * 0.999 + (current - printDate) * 0.001;
+        printDate = current;
+        requestAnimationFrame(resetPrintDate);
+      }
+      requestAnimationFrame(resetPrintDate)
+
+      var ctx = document.getElementById("sync-clock").getContext("2d");
+
+      function reset(ctx) {
+        ctx.clearRect(0, 0, 200, 200);
+        printedFrames = 0;
+        lastFrame = 0;
+      }
+
+      function fadePrevious(ctx) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.fillRect(0,0,200,200);
+      }
+
+      function drawFrameDelay(ctx, delta) {
+        var t = Date.now() - printDate;
+        var phi = 2 * Math.PI * (t / meanFrameTime);
+        var dx = Math.cos(phi) * 4 * delta;
+        var dy = Math.sin(phi) * 4 * delta;
+
+        ctx.fillStyle = "rgba(0,0,0,1)";
+        ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+        ctx.beginPath();
+        ctx.moveTo(100 + dx, 100 + dy);
+        ctx.arc(100,100, 4 * delta, phi, 0, true);
+        ctx.lineTo(100, 100);
+        ctx.closePath();
+        ctx.stroke();
+        /*
+        ctx.strokeStyle = "rgba(0, 0, 0, 1)";
+        ctx.beginPath();
+        ctx.moveTo(100,100);
+        ctx.lineTo(100 + dx, 100 + dy);
+        ctx.closePath();
+        ctx.stroke();*/
+      }
+
+      var deltaMean = 0;
+      function drawHiFreqClock(ctx, delta) {
+        var t = Date.now() - printDate;
+        var phi = 2 * Math.PI * (t / meanFrameTime);
+        var dx = Math.cos(phi) * 4 * delta;
+        var dy = Math.sin(phi) * 4 * delta;
+
+        ctx.fillStyle = "rgba(0,0,0,1)";
+        ctx.font = "30px Helvetica";
+        ctx.fillText("" + (Math.floor((1000 / deltaMean) * 100) / 100), 57, 95);
+
+        ctx.strokeStyle = "rgba(255, 0, 0, 1)";
+        ctx.beginPath();
+        ctx.moveTo(100, 100);
+        ctx.lineTo(195, 100);
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      function animController(elaspedTime) {
+        var delta = elaspedTime - lastFrame;
+        lastFrame = elaspedTime;
+        if (delta < 0) {
+          reset(ctx);
+          return true;
+        }
+        var margin = 10 + 100 * Math.exp(-printedFrames / 100);
+        //if (deltaMean - margin < delta && delta < deltaMean + margin) {
+          deltaMean = (deltaMean * printedFrames + delta) / (printedFrames + 1);
+          ++printedFrames;
+        //}
+        fadePrevious(ctx);
+        drawFrameDelay(ctx, delta);
+        drawHiFreqClock(ctx, delta);
+        if (elaspedTime > 30000) {
+          return false;
+        }
+        return true;
+      }
+
+      document.getElementById("sync-interval").onclick = function() {
+        var start = Date.now();
+        lastFrame = start;
+        var id = window.setInterval(function () {
+          var current = Date.now();
+          if (!animController(current - start))
+            window.clearInterval(id);
+        }, 1000/60);
+      }
+      document.getElementById("sync-timeout").onclick = function() {
+        var start = Date.now();
+        lastFrame = start;
+        function draw () {
+          var current = Date.now();
+          if (animController(current - start))
+            window.setTimeout(draw, 1000/60);
+        }
+        window.setTimeout(draw, 1000/60);
+      }
+      document.getElementById("sync-animFrame").onclick = function() {
+        // TODO: Use a different timer in other browsers.
+        var start = window.mozAnimationStartTime || Date.now();
+        lastFrame = start;
+        function step(current) {
+          if (!current) current = Date.now();
+          var progress = current - start;
+          if (animController(current - start))
+            requestAnimationFrame(step);
+         }
+         requestAnimationFrame(step);
+      }
+
+      reset(ctx);
+    })()
+  </script>
 </section>
 
 <section>
@@ -153,19 +328,61 @@ for (var i = 0; i != 4; i++)
   <a href="http://pixelatedgeek.com/2009/04/10-works-of-art-inspired-by-super-mario-bros/">
     <img src="img/approx-mario.jpg" style="display:block;margin:auto;"/>
   </a>
-  <p class="em">Fast &amp; Approximated  &nbsp;vs.&nbsp; Realist &amp; Slow</p>
+  <p class="em">Fast &amp; Approximated   vs.  Realist &amp; Slow</p>
   <!-- Complexity http://xkcd.com/399/ -->
 </section>
 
 <section>
+  <h3>Loading Time</h3>
+  <p>Prefer the DOM, instead of Libraries:</p>
+  <div style="margin:0px 75px;" class="incremental alternate">
+  <pre><code>
+&lt;script src="jquery.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+$(window).load(function () {
+  $('#id').click(function () {
+    alert("Stop it!");
+  })
+})
+&lt;/script&gt;
+  </code></pre>
+  <div>
+  <pre><code class="javascript">
+window.onload = function () {
+  document.getElementById('id')
+    .onclick = function () {
+      alert("Oh Yeah! \o/");
+    };
+}
+  </code></pre>
+  <p>Embedded &amp; Standardized &amp; Optimized</p>
+  </div>
+  </div>
+</section>
+
+<section>
   <h3>With</h3>
-  <p>With: Lookup properties <b>as-if</b>  it was a variable.</p>
+  <p>With: Lookup properties <b>as-if</b> it was a variable.</p>
   <ul>
-    <li>No Object type.
-    <li>Unknown list of properties.
-    <li>Query everytime.
+    <li>Not with indexed properties.
     <li>Forbid JIT compilation.
   </ul>
+  <div class="incremental alternate" style="margin: 0px 75px;">
+  <pre><code class="javascript">
+var b = 1;
+var o = {  0: "zero",  a: 0,  b: 0  };
+with (o) { a }; // = 0
+with (o) { b }; // = 0
+with (o) { 0 }; // = 0
+  </code></pre>
+  <pre><code class="javascript">
+var b = 1;
+var o = {  0: "zero",  a: 0,  b: 0  };
+o['a']; /* = 0 */
+b; /* = 1 */   o['b']; /* = 1 */
+0; /* = 0 */   o[0];   /* = "zero" */
+  </code></pre>
+  </div>
   <!-- image: maze shortcut -->
 </section>
 
@@ -173,11 +390,30 @@ for (var i = 0; i != 4; i++)
   <h3>Eval</h3>
   <p>Parse &amp; Run &amp; Modify the local scope.</p>
   <ul>
-    <li>Compile everytime.
     <li>Short lifetime.
     <li>Modify local variables.
     <li>Forbid JIT compilation.
-  </p>
+  </ul>
+  <div class="incremental alternate" style="margin:0px 75px;">
+  <pre><code class="javascript">
+var style = eval("elem.style." + p);
+eval("
+  var b = 0; \
+  while(" + a + " != b) { \
+    foo(b); ++b; \
+  }");
+var object = eval(json);
+  </code></pre>
+  <pre><code class="javascript">var style = elem.style[property];
+var fun = new Function( // still slow.
+  "var b = 0; \
+  while(" + a + " != b) { \
+    foo(b); ++b; \
+  }");
+fun();
+var object = JSON.parse(json);
+  </code></pre>
+</div>
   <!-- Like mercury mission, you go to space, and come back as fast as you went
   to stay a few minutes in space where you go extremelly fast. http://history.nasa.gov/SP-4002/p1a.htm -->
 </section>
@@ -202,122 +438,9 @@ if (property in obj) {
 </section>
 
 <!-- GC effects -->
-<section>
-  <h3>The second GC effect</h3>
-  <p>What is the difference between:</p>
-  <div style="width:100%; height:40%;">
-    <div id="request-example" style="margin-left:5%; float:left; width:40%; height:100%;"></div>
-    <div style="margin-right:5%; float: right; width:45%;">
-      <span><input id="gc-interval" type="button" value="Animate 1"/>
-        <input id="gc-animFrame" type="button" value="Animate 2"/>
-        <input id="gc-none" type="button" value="no GC"/></span>
-      <p id="gc-refresh"></p>
-      <br>
-    </div>
-  </div>
-  </div>
-  <div class="incremental alternate" style="float:none">
-      <span id="scd-gc-effect">
-        <p>Are we smooth yet?</p>
-        <ul>
-          <li> 10 MB per frame.
-          <li> Frequent garbage collections.
-          <li> Worst animation ever!
-        </ul>
-      </span>
-    <p class="em">(1) setInterval vs. requestAnimationFrame (2)</p>
-  </div>
-  <script>
-    (function() {
-     var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
-                                 window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-     window.requestAnimationFrame = requestAnimationFrame;
-    })();
-
-    (function (){
-      // TODO: Add support for other browers.
-      var gradient = "-moz-linear-gradient(bottom, rgb(251,10,81) %top%%, rgb(18,18,227) %bottom%%)";
-      // var template = "";
-      // var prefixes = ["-moz-"]; // , "-o-", "-moz-", "-webkit-", "-ms-"];
-      // for (prefix in prefixes)
-      //   template += prefixes[prefix] + gradient + ";";
-      var elem = document.getElementById("request-example");
-      var stat = document.getElementById("gc-refresh");
-
-      var size = 10000000;
-      var iter = 20000;
-      // var lastFrame = 0;
-
-      function compute(elaspedTime, dom, size, iter) {
-        var T = elaspedTime / 10000;
-        var p1 = 7;
-        var p2 = 5;
-        var p3 = 3;
-        var theta = 2 * Math.PI * ((T + 0.1) * (p1 * p2 * p3));
-        var limit = Math.cos(theta / (p1 * p2)) / 2 + 0.5;
-        var upper = Math.cos(theta / (p1 * p3)) / 2 + 0.5;
-        var lower = Math.cos(theta / (p2 * p3)) / 2 + 0.5;
-        var top = Math.floor(100 * limit * upper);
-        var bottom = 100 - Math.floor(100 * (1 - limit) * lower);
-        var style = gradient.replace(/%top%/g, top.toString()).replace(/%bottom%/g, bottom.toString());
-        // alert(style);
-        dom.style.backgroundImage = style;
-
-        // This allocation is only allocating short-live objects, this is fine
-        // for testing against browser without a generational GC.
-        if (size) {
-          var step = size / iter;
-          var temp = Array(size);
-          temp[0] = 0;
-          for (var i = 1; i < iter; i++)
-            temp[i * step] = temp[(i - 1) * step];
-        }
-        /*
-        if (elaspedTime)
-          stat.innerHTML = (elaspedTime - lastFrame) + " ms";
-        lastFrame = elaspedTime;
-        */
-        if (T >= 3) {
-          compute(0, dom);
-          return true;
-        }
-        return false;
-      }
-
-          document.getElementById("gc-interval").onclick = function() {
-            var start = Date.now();
-            var id = window.setInterval(function () {
-              var current = Date.now();
-              if (compute(current - start, elem, size, iter))
-                window.clearInterval(id);
-            }, 1000/60);
-          }
-          document.getElementById("gc-animFrame").onclick = function() {
-            // TODO: Use a different timer in other browsers.
-            var start = window.mozAnimationStartTime || Date.now();
-            function step(current) {
-              if (!current) current = Date.now();
-              var progress = current - start;
-              if (!compute(current - start, elem, size, iter))
-                requestAnimationFrame(step);
-             }
-             requestAnimationFrame(step);
-          }
-          document.getElementById("gc-none").onclick = function() {
-            // TODO: Use a different timer in other browsers.
-            var start = window.mozAnimationStartTime || Date.now();
-            function step(current) {
-              if (!current) current = Date.now();
-              var progress = current - start;
-              if (!compute(current - start, elem, 0, 0))
-                requestAnimationFrame(step);
-             }
-             requestAnimationFrame(step);
-          }
-
-      compute(0, elem, 0, 0);
-    })()
-  </script>
+<section id="gc">
+  <h3>Browser Beats</h3>
+  <iframe style="width:80%; margin: 0px 75px; height:100%; border:0px;" src="example-pause.html"></iframe>
 </section>
 
 <!-- Add more details about requestAnimationFrame -->
@@ -327,7 +450,6 @@ if (property in obj) {
   <ul>
     <li>Type Inference.
     <li>Deoptimization.
-    <li>Polymorphism.
     <li>Double vs. Int.
     <li>Typed Arrays.
     <li>Meta.
@@ -357,22 +479,23 @@ if (property in obj) {
   </script>
 </section>
 
+<!--
 <section class="profiler">
   <h3>Javascript Typing</h3>
   <p>3 steps for optimizing with types:</p>
   <ul>
     <li>Type monitoring
-      <!-- Look at every instruction, and record the type of the expression,
-    show exxample after compilation. -->
+      — Look at every instruction, and record the type of the expression,
+    show exxample after compilation. —
     <li>Type inference
-      <!-- Type inference guess the type of the javascript.  The type inference
+      — Type inference guess the type of the javascript.  The type inference
            provide an upper bound to the range of possible type visible after
-      the evaluation of an instruction. -->
+      the evaluation of an instruction. —
     <li>Type barriers
-      <!-- When the observed type and the infered type are not matching the type
+      — When the observed type and the infered type are not matching the type
     inference system, as opposed to conventional type inference system of
     statically compiled language will assume that we stay with the observed
-    type, and ask the JIT to ensure that this assumption does not fail. -->
+    type, and ask the JIT to ensure that this assumption does not fail. —
   </ul>
   <div class="incremental alternate">
     <textarea class="input" rows=8 cols=36>
@@ -391,6 +514,7 @@ f;
   </div>
   <div class="status" style="display:none;"></div>
 </section>
+-->
 
 <section class="profiler">
   <h3>Optimistic Typing</h3>
@@ -453,19 +577,20 @@ iter;
   <p>Resume in the interpreter.</p>
 </section>
 
-<!-- Polymorphism -->
+<!-- Polymorphism -
 <section>
     <h3>Polymorphism</h3>
     <p>Expecting multiple types in one location</p>
     <ul>
       <li>Polymorphic objects (Inline caches).
-      <!-- TODO: Do a section on inline caches ? -->
+      <!— TODO: Do a section on inline caches ? —>
       <li>Various primitive types.
-      <!-- TODO: I Should at least warn about it. -->
+      <!— TODO: I Should at least warn about it. —>
     </ul>
 </section>
+-->
 
-<!-- Random stuff which would be nice to present if there is enough time … -->
+<!-- Random stuff which would be nice to present if there is enough time …
 <section>
   <h3>LICM &amp; GVN</h3>
 </section>
@@ -474,36 +599,91 @@ iter;
   <h3>Side-Effects</h3>
   <p>Compiler principles:</p>
   <p>Cannot be moved safely</p>
-  <p>Need to handle recovery</p> <!-- deal with IonMonkey principles -->
+  <p>Need to handle recovery</p> — deal with IonMonkey principles
 </section>
+-->
 
 <!-- Double vs. Int -->
-<section>
-  <h3>Standard Tricks</h3>
-  <p>Overflow checks</p>
+<section class="profiler">
+  <h3>Int Operations</h3>
+  <p>Intensive computation:</p>
+  <ul>
+    <li>Remove some overflow checks.
+    <li>Enforce signed ints: <code> |, &amp;, ^, &gt;&gt;, &lt;&lt;</code>
+    <li>Enforce unsigned ints: <code> &gt;&gt;&gt; </code>
+  </ul>
+  <p>Additions: <code>b + c | 0</code></p>
+  <p>Multiplication: …</p>
 </section>
+
+<section class="profiler">
+  <h3>Int Operations</h3>
+  <p>Additions: <code>b + c | 0</code></p>
+  <p>Multiplication: not <code>b * c | 0</code>, but </p>
+  <pre><code>
+function mul32(a, b) {
+  var a32 = a | 0, b32 = b | 0,
+      alo = a &amp; 0xffff,
+      ahi = a32 - alo | 0,
+      rlo = alo * b32 | 0;
+      rhi = ahi * b32 | 0;
+  return rhi + rlo | 0;
+}
+  </code></pre>
+</section>
+
 
 <!-- Typed Arrays -->
 <section>
   <h3>Types Arrays</h3>
   <!-- Integrate JSLinux -->
+  <p></p>
 </section>
 
 <!-- Meta JIT -->
 <section>
   <h3>Meta: JIT in JS</h3>
-  <p>Useful use of Eval</p>
-  <p>Code generation</p>
-  <p>Deforestation</p>
+  <p>Useful use of new Function</p>
+  <ul>
+    <li>Code generation
+    <li>Deforestation
+  </ul>
   <!-- It is costly to evaluate send something everytime in orbit just to stay
   in space, so we have made space stations, such as we can stay longer into
   space.  This is the same with eval, a function declaration in an eval
   statement is like an ISS module which stay in orbit, you built it once send it
   and re-use it. -->
+  <div class="incremental alternate" style="margin: 0px 75px;">
+  <pre><code>
+function l_Map(l_arr, l_fun) {
+  this.arr = l_arr;
+  this.fun = l_fun;
+}</code></pre>
+  <pre><code>// map f · map g == map (f · g)
+l_Map.prototype.run = function () {
+  var arr = l_arr.run();
+  var res = l_Array();
+  for (var i = 0; i != arr.length; ++i)
+    res.push(l_fun(arr[i]).run());
+  return res;
+}
+  </code></pre>
+  <pre><code>l_Map.prototype.run = function () {
+  if (l_arr instanceof l_Map &amp;&amp; …) {
+    var fold = /* map (f · g) */;
+    this.run = function () {
+      return fold.run();
+    }
+    return run();
+  }
+  …
+  </code></pre>
+  </div>
 </section>
 
 <section>
-    <h2>Conclusion</h2>
+  <h2>Conclusion</h2>
+  <p>“You write some nice looking stuff, and then hope that the magic happens” — dvander</p>
 </section>
 
 
@@ -515,17 +695,23 @@ iter;
         <li><a href="http://dev.opera.com/articles/view/efficient-javascript/?page=3#reflow">Efficient Javascript</a>
         <li><a href="https://developers.google.com/speed/articles/javascript-dom">Speeding up JavaScript: Working with the DOM</a>
     </ul>
-<section/>
+</section>
+
+<section>
+  <h3>Links: Timing</h3>
+  <ul>
+    <li><a href="https://blog.mozilla.org/javascript/2012/08/28/incremental-gc-in-firefox-16/">Incremental GC</a>
+  </ul>
+</section>
 
 <section>
     <h3>Links: Type System</h3>
-    <p></p>
     <ul>
         <li><a href="http://dl.acm.org/citation.cfm?id=2254094">Fast and precise hybrid type inference for JavaScript</a>
         <li><a href="https://addons.mozilla.org/en-us/firefox/addon/jit-inspector/">JIT Inspector — Brian Hackett</a>
         <li><a href="http://people.mozilla.com/~npierron/js-profile/profile.html">JS Profiler — Nicolas B. Pierron</a>
     </ul>
-<section/>
+</section>
 
 <!--
 <section>
@@ -580,7 +766,7 @@ iter;
   h1 {
     margin-top: 1em;
     text-align: center;
-    font-size: 3em;
+    font-size: 2.5em;
   }
 
   h2 {
@@ -603,6 +789,9 @@ iter;
     border-bottom: 1px solid #CCC;
   }
 
+  ol {
+      margin: 10px 105px;
+  }
   ul {
       margin: 10px 105px;
   }
@@ -671,7 +860,25 @@ iter;
     text-align: right;
     background-color: #F3F4F8;
     border-top: 1px solid #CCC;
-    font-size: 0.8em;
+    font-size: 0.6em;
+  }
+
+  nav {
+    position: absolute;
+    top: 8.5em;
+    font-size: 0.3em;
+    padding:0px 5px;
+  }
+  nav > a {
+    text-decoration: none;
+  }
+
+  nav :not(:first-child):before {
+    content: " > ";
+  }
+
+  .title > nav {
+    display:none;
   }
 
   /* Transition effect */
@@ -726,6 +933,48 @@ iter;
     background: #AAA;
   }
 </style>
+
+<script>
+  (function () {
+    var navList = [];
+    var sections = document.getElementsByTagName("section");
+    for (var i = 0; i < sections.length; ++i) {
+      var s = sections[i];
+      var h;
+      var j = -1;
+      do {
+        ++j;
+        h = s.getElementsByTagName('h' + j);
+        if (h.length)
+          break;
+      } while (j < 7)
+      if (!h.length) continue;
+
+      // Create section title
+      for (var prev = j; prev < navList.length; ++prev) {
+        // TODO: create a navigation bar for upcoming slides.
+      }
+
+      // Discard old sections and register the current one.
+      navList = navList.slice(0, j);
+      navList[j] = { index : i + 1, header: h[0], children : []};
+      if (j && navList[j - 1])
+        navList[j - 1].children.push(navList[j]);
+      if (j == 0) continue;
+
+      // Create the navigation bar to the parent slides.
+      var nav = document.createElement('nav');
+      for (var l = 0; l <= j; l++) {
+        if (!navList[l]) continue;
+        var link = document.createElement('a');
+        link.href = '#' + navList[l].index;
+        link.textContent = navList[l].header.textContent;
+        nav.appendChild(link);
+      }
+      s.appendChild(nav);
+    }
+  })();
+</script>
 
 <!-- {{{{ dzslides core
 #
