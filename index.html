@@ -604,13 +604,31 @@ iter;
   <!-- Houston, we'got a problem -->
   <p>Causes:</p>
   <ul>
-    <li>New observed type.
-    <li>New infered type.
+    <li>New observed / infered type.
     <li>Overflow. (Int to Double)
     <li>Imposible representations. (NaN, Infinity, -0)
     <li>etc …
   </ul>
-  <p>Resume in the interpreter.</p>
+  <div class="incremental alternate" style="margin:0px 75px;">
+    <pre><code>
+function foo(a) { … }
+for (/* … a long time … */)
+  foo(42);
+foo("Kill observed types.");</code></pre>
+    <pre><code>
+var sum = 1;
+for (var i = 1; i != 16; ++i)
+  sum *= i;
+// sum = 15! &gt; 2^32
+</code></pre>
+    <pre><code>
+var arr_d = [ 1.1, 0.7, -0.3 ];
+var arr_i = new Array();
+for (var i = 0; i != arr_d.length; ++i)
+  arr_i[i] = Math.round(arr_d[i]);
+</code></pre>
+    <p>Resume in the interpreter.</p>
+  </div>
 </section>
 
 <!-- Polymorphism -
