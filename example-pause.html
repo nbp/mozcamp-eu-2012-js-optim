@@ -1,0 +1,164 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Incremental GC Example</title></head>
+
+<body onload="onload()" onunload="onunload()">
+
+<script>
+var sx = 580;
+var sy = 360;
+
+var delays = [];
+var numSamples = sx / 2 - 35;
+var sampleIndex = 0;
+var sampleTime = 16;
+var border = 10;
+
+var garbage = [];
+var garbageSize = 1024 * 1024 * 6;
+var garbageIndex = 0;
+
+var stopped = 0;
+
+function makeGarbage(amt)
+{
+    for (var i = 0; i < amt; i++) {
+        garbage[garbageIndex++] = new Object();
+        if (garbageIndex == garbageSize)
+            garbageIndex = 0;
+    }
+}
+
+function xpos(index)
+{
+    return border + index * 2;
+}
+
+function ypos(delay)
+{
+    var r = sy - sy * Math.log(delay / 5) / Math.log(1000 / 5);
+    if (r < 5) return 5;
+    return r;
+}
+
+function drawScale(delay)
+{
+    ctx.fillStyle = 'rgb(150,150,150)';
+    ctx.strokeStyle = 'rgb(150,150,150)';
+    ctx.fillText(''+delay+'ms', xpos(numSamples) + 4, ypos(delay) + 3);
+
+    ctx.beginPath();
+    ctx.moveTo(xpos(0), ypos(delay));
+    ctx.lineTo(xpos(numSamples), ypos(delay));
+    ctx.stroke();
+    ctx.strokeStyle = 'rgb(0,0,0)';
+    ctx.fillStyle = 'rgb(0,0,0)';
+}
+
+function drawGraph()
+{
+    ctx.clearRect(0, 0, sx, sy);
+
+    drawScale(10);
+    drawScale(20);
+    drawScale(30);
+    drawScale(50);
+    drawScale(100);
+    drawScale(200);
+    drawScale(400);
+    drawScale(800);
+
+    var worst = 0, worstpos = 0;
+    ctx.beginPath();
+    for (var i = 0; i < numSamples; i++) {
+        ctx.lineTo(xpos(i), ypos(delays[i]));
+        if (delays[i] >= worst) {
+            worst = delays[i];
+            worstpos = i;
+        }
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgb(255,0,0)';
+    if (worst)
+        ctx.fillText(''+worst+'ms', xpos(worstpos) - 10, ypos(worst) - 14);
+
+    ctx.beginPath();
+    var where = sampleIndex % numSamples;
+    ctx.arc(xpos(where), ypos(delays[where]), 5, 0, Math.PI*2, true);
+    ctx.fill();
+    ctx.fillStyle = 'rgb(0,0,0)';
+
+    ctx.fillText('Time', xpos(numSamples) / 2, ypos(8));
+    ctx.save();
+    ctx.rotate(Math.PI/2);
+    ctx.fillText('Pause between frames', ypos(200), -xpos(numSamples + 25));
+    ctx.restore();
+}
+
+function stopstart()
+{
+    if (stopped) {
+        window.requestAnimationFrame(handler);
+        prev = Date.now();
+        start += prev - stopped;
+        document.getElementById('stop').value = 'Stop';
+        stopped = 0;
+    } else {
+        document.getElementById('stop').value = 'Start';
+        stopped = Date.now();
+    }
+}
+
+function handler(timestamp)
+{
+    if (stopped)
+        return;
+
+    makeGarbage(8 * 1024);
+
+    var elt = document.getElementById('data');
+    var delay = timestamp - prev;
+    prev = timestamp;
+
+    var t = timestamp - start;
+    var newIndex = Math.round(t / sampleTime);
+    while (sampleIndex < newIndex) {
+	sampleIndex++;
+        delays[sampleIndex % numSamples] = delay;
+    }
+
+    drawGraph();
+    window.requestAnimationFrame(handler);
+}
+
+function onunload()
+{
+    garbage = null;
+}
+
+function onload()
+{
+    for (var i = 0; i < numSamples; i++)
+        delays[i] = 0;
+
+    var requestAnimationFrame =
+        window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+    window.requestAnimationFrame = requestAnimationFrame;
+
+    stopped = start = prev = Date.now();
+    canvas = document.getElementById('graph');
+    ctx = canvas.getContext('2d');
+    drawGraph();
+    // window.requestAnimationFrame(handler);
+}
+</script>
+
+<div style="display:block; text-align:center;">
+<canvas id="graph" width="580" height="360"></canvas>
+<div>
+<p style="float:right; text-align:right;">Made by Bill McCloskey.</p><p
+style="float:left;"><input id="stop" value="Start" onclick="stopstart()" type="button"></p>
+</div>
+</div>
+</body></html>
