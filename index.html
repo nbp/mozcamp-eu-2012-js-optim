@@ -482,7 +482,7 @@ if (property in obj) {
 <!-- Type inference -->
 <section>
   <h3>Better Typed</h3>
-  <p>What is the following code doing:</p>
+  <p>What do the following code doing:</p>
   <pre><code>
   a + b
   </code></pre>
@@ -493,12 +493,25 @@ if (property in obj) {
     browser, you will understand that such loose typing system is kind of
     annoying. -->
   </ul>
+  <iframe id="apb" src="about:blank" width="780" height="430"
+    frameborder="0" scrolling="no" style="position:absolute; left:10px;
+    top:140px;">
+  </iframe>
   <script>
     var a = { valueOf: function () {
-      window.location = "https://developer.mozilla.org/en-US/demos/detail/css-nyan-cat/launch";
-      return 0;
+      // window.location = "https://developer.mozilla.org/en-US/demos/detail/css-nyan-cat/launch";
+      // window.location = window.location + "offline-cache/a-plus-b.html";
+      var frame = document.getElementById('apb');
+      var target = "offline-cache/a-plus-b.html";
+      if (frame.src != "about:blank") {
+        frame.src = "about:blank";
+        return "Finally! Let's hope this is not Schrödinger's cat …";
+      } else {
+        frame.src = target;
+        return "Nyanyanyanyanyanyanya!";
+      }
     } };
-    var b = 0;
+    var b = "";
   </script>
 </section>
 
@@ -760,8 +773,17 @@ l_Map.prototype.run = function () {
 <script>hljs.initHighlightingOnLoad();</script>
 
 </script>
+
 <!-- Maybe a font from http://www.google.com/webfonts ? -->
-<link href='http://fonts.googleapis.com/css?family=Oswald' rel='stylesheet'>
+<!--<link href='http://fonts.googleapis.com/css?family=Oswald' rel='stylesheet'>-->
+<style>
+@font-face {
+  font-family: 'Oswald';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Oswald '), local('Oswald'), url(offline-cache/-g5pDUSRgvxvOl5u-a_WHw.woff) format('woff');
+}
+</style>
 
 <style>
   html, .view body { background-color: black; counter-reset: slideidx; }
