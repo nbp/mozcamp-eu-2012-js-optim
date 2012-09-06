@@ -107,9 +107,11 @@ var faq = "Why B ?";
     <p>Except with</p>
     <ul>
         <li>Reflows &amp; Repaints
-        <li>Bad Timing &amp; Bad algorithms
-        <li>Dynamic features
+        <li>Bad timing
+        <!--<li>Wasted resources-->
         <li>GCs
+        <li>Bad algorithms
+        <li>Dynamic features
     </ul>
     <!--<span class="incremental alternate">-->
 <!--        <pre><code class="javascript">-->
@@ -324,15 +326,6 @@ x.style.width = '420px'; // Reflow
 </section>
 
 <section>
-  <h3>Algorithms</h3>
-  <a href="http://pixelatedgeek.com/2009/04/10-works-of-art-inspired-by-super-mario-bros/">
-    <img src="img/approx-mario.jpg" style="display:block;margin:auto;"/>
-  </a>
-  <p class="em">Fast &amp; Approximated   vs.  Realist &amp; Slow</p>
-  <!-- Complexity http://xkcd.com/399/ -->
-</section>
-
-<section>
   <h3>Loading Time</h3>
   <p>Prefer the DOM, instead of Libraries:</p>
   <div style="margin:0px 75px;" class="incremental alternate">
@@ -358,6 +351,42 @@ window.onload = function () {
   <p>Embedded &amp; Standardized &amp; Optimized</p>
   </div>
   </div>
+</section>
+
+<!-- Not directly related with the topic but it can make a good transition to the
+memory usage of processes. -->
+<!--
+<section>
+  <h3>Memory Footprint</h3>
+  <p><a href="http://ftllc.com/articles/social-media-buttons.php" style="color:
+    black;">Social Media Share Buttons</a></p>
+  <p style="font-size: 0.7em">by Footprint Social Media Group</p>
+  <p style="margin-top:20px;">Top 5: (about:memory)</p>
+  <ol class="incremental" reversed>
+    <li>linkedin <span style="float:right;">4 buttons, &lt;0.12 MB/button</span>
+    <li>stumble upon <span style="float:right">1 buttons, ~0.50 MB/button</span>
+    <li>facebook <span style="float:right">13 buttons, ~0.95 MB/button</span>
+    <li>google +1 <span style="float:right">6 buttons, ~1.23 MB/button</span>
+    <li>twitter <span style="float:right">6 buttons, ~1.38 MB/button</span>
+    <li>reddit <span style="float:right">3 buttons, ~1.72 MB/button</span>
+  </ol>
+</section>
+-->
+
+<!-- GC effects -->
+<section id="gc">
+  <h3>Browser Beats</h3>
+  <iframe style="width:80%; margin: 0px 75px; height:100%; border:0px;" src="example-pause.html"></iframe>
+</section>
+
+<section>
+  <h3>Algorithms</h3>
+  <a href="http://pixelatedgeek.com/2009/04/10-works-of-art-inspired-by-super-mario-bros/">
+    <img src="img/approx-mario.jpg" style="display:block;margin:auto;"/>
+  </a>
+  <p class="em"><span style="float:left;">Fast &amp; Approximated</span>   vs. 
+  <span style="float:right">Realist &amp; Slow</span></p>
+  <!-- Complexity http://xkcd.com/399/ -->
 </section>
 
 <section>
@@ -435,12 +464,6 @@ if (property in obj) {
   </code></pre>
   <p>Better now ?</p>
 </div></div>
-</section>
-
-<!-- GC effects -->
-<section id="gc">
-  <h3>Browser Beats</h3>
-  <iframe style="width:80%; margin: 0px 75px; height:100%; border:0px;" src="example-pause.html"></iframe>
 </section>
 
 <!-- Add more details about requestAnimationFrame -->
