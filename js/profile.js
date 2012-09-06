@@ -22,9 +22,11 @@ function Profiler(elem) {
     this.totalActivity = 1;
 
     var self = this;
-    this.input.ondblclick = function () {
+    if (this.input) {
+      this.input.ondblclick = function () {
         self.run();
-    };
+      };
+    }
 
     this.setupSwitch(elem, "toBarrier", "barrier");
     this.setupSwitch(elem, "toActivity", "activity");
