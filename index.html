@@ -28,13 +28,13 @@ var ircName = "nbp";
 var work = "SpiderMonkey Hacker";
 var workplace = "Monkey Island";
 
-var outsideMozillaActivites = " \
+var outsideMozillaActivities = " \
   runs his own Linux distribution, \
   uses git instead of mercurial and \
   tries to make funny presentation … \
       … without success.";
 
-var faq = "Why B ?";
+var faq = "Why B?";
   </code></pre>
   <!--
   <ul>
@@ -66,7 +66,7 @@ var faq = "Why B ?";
   <h3>about:context</h3>
   <p>About Javascript:</p>
   <ul>
-    <li>Different engines. (SpiderMonkey, v8, JSC, …)
+    <li>Different engines (SpiderMonkey, v8, JSC …).
     <li>Translated to machine code at runtime.
   </ul>
   <p>About SpiderMonkey features:</p>
@@ -561,7 +561,6 @@ f;
     <textarea class="input" rows=12 cols=36>
 var arr = [0, 0.5];
 function g(){
-  var x;
   var i = arr.length;
   // arr[i] = arr[i - 1] + 0.5;
   arr[i] = arr[i - 2] + 1;
@@ -659,6 +658,17 @@ for (var i = 0; i != arr_d.length; ++i)
 
 <!-- Double vs. Int -->
 <section class="profiler">
+  <h3>Soft Float Loves Int</h3>
+  <p>Soft Float:</p>
+  <ul>
+    <li>Most of ARMv6.
+    <li>Emulate float operations.
+    <li>~100 - ~1000 times slower.
+  </ul>
+  <p>Prefer Int operations</p>
+</section>
+
+<section class="profiler">
   <h3>Int Operations</h3>
   <p>Intensive computation:</p>
   <ul>
@@ -679,7 +689,7 @@ function mul32(a, b) {
   var a32 = a | 0, b32 = b | 0,
       alo = a &amp; 0xffff,
       ahi = a32 - alo | 0,
-      rlo = alo * b32 | 0;
+      rlo = alo * b32 | 0,
       rhi = ahi * b32 | 0;
   return rhi + rlo | 0;
 }
@@ -721,10 +731,11 @@ function l_Map(l_arr, l_fun) {
 }</code></pre>
   <pre><code>// map f · map g == map (f · g)
 l_Map.prototype.run = function () {
-  var arr = l_arr.run();
+  var arr = this.l_arr.run();
+  var fun = this.l_fun;
   var res = l_Array();
   for (var i = 0; i != arr.length; ++i)
-    res.push(l_fun(arr[i]).run());
+    res.push(fun(arr[i]).run());
   return res;
 }
   </code></pre>
@@ -734,7 +745,7 @@ l_Map.prototype.run = function () {
     this.run = function () {
       return fold.run();
     }
-    return run();
+    return this.run();
   }
   …
   </code></pre>
